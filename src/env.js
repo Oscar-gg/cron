@@ -15,6 +15,7 @@ export const env = createEnv({
     AUTH_GOOGLE_ID: z.string(),
     AUTH_GOOGLE_SECRET: z.string(),
     DATABASE_URL: z.string().url(),
+    DIRECT_URL: z.string().url(),
     // Comma-separated list of admin emails, e.g. "me@example.com,other@example.com"
     ADMIN_EMAILS: z.string().default(""),
     // How many of the most recent responses to keep per registered call
