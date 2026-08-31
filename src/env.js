@@ -45,6 +45,7 @@ export const env = createEnv({
     AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID,
     AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
+    DIRECT_URL: process.env.DIRECT_URL,
     ADMIN_EMAILS: process.env.ADMIN_EMAILS,
     MAX_RESPONSES_PER_CALL: process.env.MAX_RESPONSES_PER_CALL,
     CRON_SECRET: process.env.CRON_SECRET,
