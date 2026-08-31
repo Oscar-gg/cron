@@ -2,7 +2,6 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { env } from "~/env";
-import { executeHttpCall } from "~/server/http-exec";
 import {
   adminProcedure,
   createTRPCRouter,
@@ -152,20 +151,5 @@ export const apiCallRouter = createTRPCRouter({
         where: { id: input.id },
         data: { enabled: input.enabled },
       });
-    }),
-
-  // -- ad-hoc test, nothing is persisted ----------------------------------
-
-  test: protectedProcedure
-    .input(
-      z.object({
-        method: methodSchema,
-        url: z.string().url("Must be a valid URL").max(2000),
-        headers: headersSchema,
-        body: z.string().max(50_000).optional(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      return executeHttpCall(input);
     }),
 });

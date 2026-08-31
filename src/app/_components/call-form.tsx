@@ -56,12 +56,9 @@ export function CallForm({
     durationMs: number;
   }>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [testPending, setTestPending] = useState(false);
 
   const showBody = method !== "GET" && method !== "HEAD";
-
-  const testMutation = api.apiCall.test.useMutation({
-    onSuccess: (result) => setTestResult(result),
-  });
 
   const createMutation = api.apiCall.create.useMutation({
     onSuccess: async () => {
@@ -92,14 +89,58 @@ export function CallForm({
     };
   }
 
-  function handleTest() {
+  // The test request runs from the user's own browser, not the server, so the
+  // app is never a proxy to arbitrary hosts. The trade-off is that targets which
+  // don't send permissive CORS headers will surface as a network error here.
+  async function handleTest() {
     setTestResult(null);
-    testMutation.mutate({
-      method,
-      url,
-      headers: pairsToRecord(headerPairs),
-      body: showBody ? body : undefined,
-    });
+    setTestPending(true);
+    const started =
+      typeof performance !== "undefined" ? performance.now() : Date.now();
+    const elapsed = () =>
+      Math.round(
+        (typeof performance !== "undefined" ? performance.now() : Date.now()) -
+          started,
+      );
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: pairsToRecord(headerPairs),
+        body: showBody && body ? body : undefined,
+        redirect: "follow",
+      });
+      const text = await res.text();
+      const headers: Record<string, string> = {};
+      res.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+      setTestResult({
+        ok: res.ok,
+        status: res.status,
+        statusText: res.statusText,
+        headers,
+        body:
+          text.length > 20_000
+            ? text.slice(0, 20_000) + "\n… [truncated]"
+            : text,
+        error: null,
+        durationMs: elapsed(),
+      });
+    } catch (err) {
+      setTestResult({
+        ok: false,
+        status: null,
+        statusText: null,
+        headers: null,
+        body: null,
+        error:
+          (err instanceof Error ? err.message : String(err)) +
+          " — the request failed in your browser. The target may not allow cross-origin requests (CORS), or the URL is unreachable.",
+        durationMs: elapsed(),
+      });
+    } finally {
+      setTestPending(false);
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -213,10 +254,10 @@ export function CallForm({
         <button
           type="button"
           onClick={handleTest}
-          disabled={testMutation.isPending || !url}
+          disabled={testPending || !url}
           className="rounded border border-neutral-700 px-4 py-2 text-sm hover:bg-neutral-800 disabled:opacity-50"
         >
-          {testMutation.isPending ? "Testing…" : "Test request"}
+          {testPending ? "Testing…" : "Test request"}
         </button>
 
         {!readOnly && (
@@ -233,6 +274,12 @@ export function CallForm({
           </button>
         )}
       </div>
+
+      <p className="text-xs text-neutral-500">
+        “Test request” runs from your browser, so results may differ from the
+        scheduled run and some hosts will be blocked by CORS. The saved request
+        always runs server-side.
+      </p>
 
       {formError && <p className="text-sm text-red-400">{formError}</p>}
 
